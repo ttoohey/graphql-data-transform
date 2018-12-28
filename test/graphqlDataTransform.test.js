@@ -16,7 +16,7 @@ const schema = gql`
     todos: [Todo]
   }
 
-  type CategoryInput {
+  input CategoryInput {
     title: String
     todoIds: [ID]
   }
@@ -30,7 +30,7 @@ const schema = gql`
     category: Category
   }
 
-  type TodoInput {
+  input TodoInput {
     text: String
     status: TodoStatus
     dueDate: DateTime

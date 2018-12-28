@@ -2,7 +2,8 @@ const defaultTransform = value => value;
 const builtins = ["Int", "Float", "String", "Boolean", "ID"];
 const filterScalar = ({ kind }) =>
   ["ScalarTypeDefinition", "EnumTypeDefinition"].includes(kind);
-const filterObject = ({ kind }) => ["ObjectTypeDefinition"].includes(kind);
+const filterObject = ({ kind }) =>
+  ["ObjectTypeDefinition", "InputObjectTypeDefinition"].includes(kind);
 const fieldByName = (fields, field) => ({
   ...fields,
   [field.name.value]: field
@@ -65,7 +66,7 @@ export default function graphqlDataTransform(
         );
         return result;
       }, {});
-      return mode ? value : transformFn(value)
+      return mode ? value : transformFn(value);
     };
     const getReducer = value => (o, method) => ({
       ...o,
