@@ -1,9 +1,11 @@
 {
   "name": "graphql-data-transform",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Transform data objects based on GraphQL schema",
   "main": "dist/index.js",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "test": "jest",
     "build": "babel src --out-dir dist",
