@@ -53,6 +53,9 @@ export default function graphqlDataTransform(
     const name = object.name.value;
     const fields = object.fields.reduce(fieldByName, {});
     const transform = method => (object, mode = false) => {
+      if (object === undefined || object === null) {
+        return object
+      }
       const transformFn = (transforms[name] || {})[method] || defaultTransform;
       const value = Object.entries(object).reduce((result, [key, value]) => {
         if (!fields.hasOwnProperty(key)) {

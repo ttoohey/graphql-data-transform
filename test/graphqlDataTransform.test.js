@@ -187,3 +187,18 @@ test("transform Category data to formData then to input", () => {
   };
   expect(attributes).toMatchObject(expected);
 });
+
+test("transform data with null object", () => {
+  const data = {
+    todo: {
+      __typename: "Todo",
+      id: "Todo:1",
+      category: null
+    }
+  }
+  const formData = types.Todo.data(data.todo).format();
+  const expected = {
+    id: "Todo:1"
+  }
+  expect(formData).toMatchObject(expected)
+})
