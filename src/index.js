@@ -3,11 +3,12 @@ const builtins = ["Int", "Float", "String", "Boolean", "ID"];
 const filterScalar = ({ kind }) =>
   ["ScalarTypeDefinition", "EnumTypeDefinition"].includes(kind);
 const filterObject = ({ kind }) =>
-  ["ObjectTypeDefinition", "InputObjectTypeDefinition"].includes(kind);
+  ["ObjectTypeDefinition", "InputObjectTypeDefinition", "InterfaceTypeDefinition"].includes(kind);
 const fieldByName = (fields, field) => ({
   ...fields,
   [field.name.value]: field
 });
+const byObjectType = (c, item) => ({ ...c, [item.name.value]: item })
 
 export default function graphqlDataTransform(
   schema,
@@ -20,9 +21,16 @@ export default function graphqlDataTransform(
     .filter(filterScalar)
     .map(item => item.name.value);
   const objects = schema.definitions.filter(filterObject);
+  const objectsByType = objects.reduce(byObjectType, {})
   const getObjectFieldValue = (method, value, fieldDefinitionType, mode) => {
     if (fieldDefinitionType.kind === "NamedType") {
-      const Type = types[fieldDefinitionType.name.value];
+      let Type = types[fieldDefinitionType.name.value];
+      if (Type === undefined && value && value.__typename) {
+        Type = types[value.__typename] // map interface by typename (TODO)
+      }
+      if (Type === undefined) {
+        throw new Error(`Unable to transform data for type ${fieldDefinitionType.name.value}`)
+      }
       return mode ? Type[method](value).get() : Type.set(value)[method]();
     }
     if (fieldDefinitionType.kind === "NonNullType") {
@@ -33,6 +41,7 @@ export default function graphqlDataTransform(
         getObjectFieldValue(method, v, fieldDefinitionType.type, mode)
       );
     }
+    throw new Error(`Unhandled field definition for kind ${fieldDefinitionType.kind}`)
   };
   [...builtins, ...scalars].forEach(name => {
     const transform = method =>
@@ -51,24 +60,30 @@ export default function graphqlDataTransform(
   });
   objects.forEach(object => {
     const name = object.name.value;
-    const fields = object.fields.reduce(fieldByName, {});
-    const transform = method => (object, mode = false) => {
-      if (object === undefined || object === null) {
-        return object
+    const fields = (typename) => {
+      if (object.kind === 'InterfaceTypeDefinition' && typename) {
+        return objectsByType[typename].fields.reduce(fieldByName, {});
       }
+      return object.fields.reduce(fieldByName, {});
+    };
+    const transform = method => (data, mode = false) => {
+      if (data === undefined || data === null) {
+        return data
+      }
+      const _fields = fields(data.__typename)
       const transformFn = (transforms[name] || {})[method] || defaultTransform;
-      const value = Object.entries(object).reduce((result, [key, value]) => {
-        if (!fields.hasOwnProperty(key)) {
+      const value = Object.entries(data).reduce((result, [key, value]) => {
+        if (!_fields.hasOwnProperty(key)) {
           return result;
         }
         result[key] = getObjectFieldValue(
           method,
           mode ? transformFn(value) : value,
-          fields[key].type,
+          _fields[key].type,
           mode
         );
         return result;
-      }, {});
+      }, { __typename: data.__typename });
       return mode ? value : transformFn(value);
     };
     const getReducer = value => (o, method) => ({

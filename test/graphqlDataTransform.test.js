@@ -10,7 +10,11 @@ const schema = gql`
     DONE
   }
 
-  type Category {
+  interface Node {
+    id: ID!
+  }
+
+  type Category implements Node {
     id: ID!
     title: String
     todos: [Todo]
@@ -21,7 +25,7 @@ const schema = gql`
     todoIds: [ID]
   }
 
-  type Todo {
+  type Todo implements Node {
     id: ID!
     text: String
     status: TodoStatus
@@ -36,6 +40,10 @@ const schema = gql`
     dueDate: DateTime
     estimate: Int
     categoryId: ID
+  }
+
+  type Query {
+    node (id: ID!): Node
   }
 `;
 
@@ -199,6 +207,24 @@ test("transform data with null object", () => {
   const formData = types.Todo.data(data.todo).format();
   const expected = {
     id: "Todo:1"
+  }
+  expect(formData).toMatchObject(expected)
+})
+
+test("transform query result", () => {
+  const data = {
+    node: {
+      __typename: "Todo",
+      id: "Todo:1",
+      text: "First todo",
+    }
+  }
+  const formData = types.Query.data(data).format();
+  const expected = {
+    node: {
+      id: "Todo:1",
+      text: "First todo",
+    }
   }
   expect(formData).toMatchObject(expected)
 })
