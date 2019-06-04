@@ -87,10 +87,17 @@ const attributes = types.ProductInput.parse(formData).input()
 // -> attributes: { price: 999 }
 
 // It's possible to transform values to specialized formats. This example shows
-// how a 'Money' type might be used to convert price values (returned as 
+// how a 'Money' type might be used to convert price values (returned as
 // integers from the GraphQL query) to a human-friendly format to pass to
 // components
 const data = { price: 1000 }
 const props = types.Product.data(data).props()
 // -> props: { price: "$10.00" }
 ```
+
+## Possible future enhancements
+
+* Support aliases. The transformation functions do not have access to
+the GraphQL query so have no knowledge of aliases. The result is the data structure to
+be transformed does not match the schema. Devising a way to feed the query
+to the transformation functions is currently beyond the scope of this module.
