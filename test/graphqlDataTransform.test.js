@@ -61,12 +61,12 @@ const transforms = {
     parse: value => value.toUpperCase()
   },
   Todo: {
-    format: value => ({ ...value, categoryId: (value.category || {}).id })
+    format: ({category, ...value}) => ({ ...value, categoryId: (category || {}).id })
   },
   Category: {
-    format: value => ({
+    format: ({todos, ...value}) => ({
       ...value,
-      todoIds: (value.todos || []).map(({ id }) => id)
+      todoIds: (todos || []).map(({ id }) => id)
     })
   }
 };
@@ -105,13 +105,14 @@ test("transform Todo data to formData", () => {
   };
   const formData = types.Todo.data(data.todo).format();
   const expected = {
+    id: "Todo:1",
     text: "First todo",
     dueDate: new Date("2012-03-04T05:06:07+0800"),
     status: "done",
     estimate: "30",
     categoryId: "Category:1"
   };
-  expect(formData).toMatchObject(expected);
+  expect(formData).toStrictEqual(expected);
 });
 
 test("transform Todo formData to input", () => {
@@ -130,7 +131,7 @@ test("transform Todo formData to input", () => {
     estimate: 30,
     categoryId: "Category:1"
   };
-  expect(attributes).toMatchObject(expected);
+  expect(attributes).toStrictEqual(expected);
 });
 
 test("transform nested Todo", () => {
@@ -165,7 +166,7 @@ test("transform nested Todo", () => {
       }
     ]
   };
-  expect(props).toMatchObject(expected);
+  expect(props).toStrictEqual(expected);
 });
 
 test("transform Category data to formData then to input", () => {
@@ -193,7 +194,7 @@ test("transform Category data to formData then to input", () => {
     title: "First category",
     todoIds: ["Todo:1", "Todo:2", "Todo:3"]
   };
-  expect(attributes).toMatchObject(expected);
+  expect(attributes).toStrictEqual(expected);
 });
 
 test("transform data with null object", () => {
@@ -206,9 +207,10 @@ test("transform data with null object", () => {
   }
   const formData = types.Todo.data(data.todo).format();
   const expected = {
-    id: "Todo:1"
+    id: "Todo:1",
+    categoryId: undefined
   }
-  expect(formData).toMatchObject(expected)
+  expect(formData).toStrictEqual(expected)
 })
 
 test("transform query result", () => {
@@ -226,5 +228,5 @@ test("transform query result", () => {
       text: "First todo",
     }
   }
-  expect(formData).toMatchObject(expected)
+  expect(formData).toStrictEqual(expected)
 })

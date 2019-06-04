@@ -83,7 +83,7 @@ export default function graphqlDataTransform(
           mode
         );
         return result;
-      }, { __typename: data.__typename });
+      }, mode ? { __typename: data.__typename } : {});
       return mode ? value : transformFn(value);
     };
     const getReducer = value => (o, method) => ({
