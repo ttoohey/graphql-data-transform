@@ -13,6 +13,8 @@
     "prepublish": "npm run clean && npm test && npm run build"
   },
   "author": "Gency Digital <hello@gency.com.au>",
+  "homepage": "https://github.com/ttoohey/graphql-data-transform",
+  "bugs": "https://github.com/ttoohey/graphql-data-transform/issues",
   "license": "ISC",
   "dependencies": {},
   "devDependencies": {
