@@ -43,7 +43,11 @@ const schema = gql`
   }
 
   type Query {
-    node (id: ID!): Node
+    node(id: ID!): Node
+  }
+
+  input ManyTodos {
+    todos: [TodoInput]!
   }
 `;
 
@@ -61,10 +65,13 @@ const transforms = {
     parse: value => value.toUpperCase()
   },
   Todo: {
-    format: ({category, ...value}) => ({ ...value, categoryId: (category || {}).id })
+    format: ({ category, ...value }) => ({
+      ...value,
+      categoryId: (category || {}).id
+    })
   },
   Category: {
-    format: ({todos, ...value}) => ({
+    format: ({ todos, ...value }) => ({
       ...value,
       todoIds: (todos || []).map(({ id }) => id)
     })
@@ -204,29 +211,48 @@ test("transform data with null object", () => {
       id: "Todo:1",
       category: null
     }
-  }
+  };
   const formData = types.Todo.data(data.todo).format();
   const expected = {
     id: "Todo:1",
     categoryId: undefined
-  }
-  expect(formData).toStrictEqual(expected)
-})
+  };
+  expect(formData).toStrictEqual(expected);
+});
 
 test("transform query result", () => {
   const data = {
     node: {
       __typename: "Todo",
       id: "Todo:1",
-      text: "First todo",
+      text: "First todo"
     }
-  }
+  };
   const formData = types.Query.data(data).format();
   const expected = {
     node: {
       id: "Todo:1",
-      text: "First todo",
+      text: "First todo"
     }
-  }
-  expect(formData).toStrictEqual(expected)
-})
+  };
+  expect(formData).toStrictEqual(expected);
+});
+
+test("transform list of inputs", () => {
+  const formData = {
+    todos: [
+      {
+        text: "First todo"
+      }
+    ]
+  };
+  const attributes = types.ManyTodos.parse(formData).input();
+  const expected = {
+    todos: [
+      {
+        text: "First todo"
+      }
+    ]
+  };
+  expect(attributes).toStrictEqual(expected);
+});
