@@ -74,7 +74,7 @@ export default function graphqlDataTransform(
       }
       return object.fields.reduce(fieldByName, {});
     };
-    const transform = method => (data, mode = false) => {
+    const transform = method => (data, mode = false, original) => {
       if (data === undefined || data === null) {
         return data;
       }
@@ -91,24 +91,25 @@ export default function graphqlDataTransform(
             _fields[key].type,
             mode
           );
-          // console.log(value, key, result[key], _fields[key].type);
           return result;
         },
         mode ? { __typename: data.__typename } : {}
       );
-      return mode ? value : transformFn(value);
+      return mode ? value : transformFn(value, original);
     };
-    const getReducer = value => (o, method) => ({
+    const getReducer = (value, original) => (o, method) => ({
       ...o,
-      [method]: () => transform(method)(value)
+      [method]: () => transform(method)(value, false, original)
     });
     const setReducer = (o, method) => ({
       ...o,
-      [method]: value => set(transform(method)(value, true))
+      [method]: value => set(transform(method)(value, true), value)
     });
-    const set = value =>
-      getMethods.reduce(getReducer(value), { get: () => value });
-    types[name] = setMethods.reduce(setReducer, { set });
+    const set = (value, original) =>
+      getMethods.reduce(getReducer(value, original), { get: () => value });
+    types[name] = setMethods.reduce(setReducer, {
+      set: value => set(value, value)
+    });
   });
   return types;
 }

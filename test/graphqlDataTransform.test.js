@@ -18,6 +18,7 @@ const schema = gql`
     id: ID!
     title: String
     todos: [Todo]
+    visible: Boolean
   }
 
   input CategoryInput {
@@ -255,4 +256,43 @@ test("transform list of inputs", () => {
     ]
   };
   expect(attributes).toStrictEqual(expected);
+});
+
+test("object transformer function can access original value", () => {
+  const transforms = {
+    Boolean: {
+      getter: value => (value ? "Yes" : "No")
+    },
+    Category: {
+      getter: (value, original) => (original.visible ? value : null)
+    }
+  };
+  const types = graphqlDataTransform(
+    schema,
+    transforms,
+    ["setter"],
+    ["getter"]
+  );
+  const data = [
+    {
+      category: {
+        visible: true
+      }
+    },
+    {
+      category: {
+        visible: false
+      }
+    }
+  ];
+  const received = data.map(item => types.Todo.setter(item).getter());
+  const expected = [
+    {
+      category: {
+        visible: "Yes"
+      }
+    },
+    { category: null }
+  ];
+  expect(received).toStrictEqual(expected);
 });
