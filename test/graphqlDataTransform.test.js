@@ -24,6 +24,7 @@ const schema = gql`
   input CategoryInput {
     title: String
     todoIds: [ID]
+    length: Int
   }
 
   type Todo implements Node {
@@ -54,29 +55,32 @@ const schema = gql`
 
 const transforms = {
   Int: {
-    format: value => String(value),
-    parse: value => parseInt(value, 10)
+    format: (value) => String(value),
+    parse: (value) => parseInt(value, 10),
   },
   DateTime: {
-    data: value => new Date(value),
-    input: value => value.toISOString()
+    data: (value) => new Date(value),
+    input: (value) => value.toISOString(),
   },
   TodoStatus: {
-    format: value => value.toLowerCase(),
-    parse: value => value.toUpperCase()
+    format: (value) => value.toLowerCase(),
+    parse: (value) => value.toUpperCase(),
   },
   Todo: {
     format: ({ category, ...value }) => ({
       ...value,
-      categoryId: (category || {}).id
-    })
+      categoryId: (category || {}).id,
+    }),
   },
   Category: {
     format: ({ todos, ...value }) => ({
       ...value,
-      todoIds: (todos || []).map(({ id }) => id)
-    })
-  }
+      todoIds: (todos || []).map(({ id }) => id),
+    }),
+  },
+  CategoryInput: {
+    parse: (value) => ({ ...value, length: value.todoIds?.length }),
+  },
 };
 
 const types = graphqlDataTransform(
@@ -107,9 +111,9 @@ test("transform Todo data to formData", () => {
       estimate: 30,
       category: {
         __typename: "Category",
-        id: "Category:1"
-      }
-    }
+        id: "Category:1",
+      },
+    },
   };
   const formData = types.Todo.data(data.todo).format();
   const expected = {
@@ -118,7 +122,7 @@ test("transform Todo data to formData", () => {
     dueDate: new Date("2012-03-04T05:06:07+0800"),
     status: "done",
     estimate: "30",
-    categoryId: "Category:1"
+    categoryId: "Category:1",
   };
   expect(formData).toStrictEqual(expected);
 });
@@ -129,7 +133,7 @@ test("transform Todo formData to input", () => {
     dueDate: new Date("2012-03-04T05:06:07+0800"),
     status: "done",
     estimate: "30",
-    categoryId: "Category:1"
+    categoryId: "Category:1",
   };
   const attributes = types.TodoInput.parse(formData).input();
   const expected = {
@@ -137,7 +141,7 @@ test("transform Todo formData to input", () => {
     dueDate: "2012-03-03T21:06:07.000Z",
     status: "DONE",
     estimate: 30,
-    categoryId: "Category:1"
+    categoryId: "Category:1",
   };
   expect(attributes).toStrictEqual(expected);
 });
@@ -155,10 +159,10 @@ test("transform nested Todo", () => {
           text: "First todo",
           dueDate: "2012-03-04T05:06:07+0800",
           status: "DONE",
-          estimate: 30
-        }
-      ]
-    }
+          estimate: 30,
+        },
+      ],
+    },
   };
   const props = types.Category.data(data.category).props();
   const expected = {
@@ -170,9 +174,9 @@ test("transform nested Todo", () => {
         text: "First todo",
         dueDate: new Date("2012-03-04T05:06:07+0800"),
         status: "DONE",
-        estimate: 30
-      }
-    ]
+        estimate: 30,
+      },
+    ],
   };
   expect(props).toStrictEqual(expected);
 });
@@ -186,21 +190,22 @@ test("transform Category data to formData then to input", () => {
       todos: [
         {
           __typename: "Todo",
-          id: "Todo:1"
+          id: "Todo:1",
         },
         {
           __typename: "Todo",
-          id: "Todo:2"
-        }
-      ]
-    }
+          id: "Todo:2",
+        },
+      ],
+    },
   };
   const formData = types.Category.data(data.category).format();
   formData.todoIds = [...formData.todoIds, "Todo:3"];
   const attributes = types.CategoryInput.parse(formData).input();
   const expected = {
     title: "First category",
-    todoIds: ["Todo:1", "Todo:2", "Todo:3"]
+    todoIds: ["Todo:1", "Todo:2", "Todo:3"],
+    length: 3,
   };
   expect(attributes).toStrictEqual(expected);
 });
@@ -210,13 +215,13 @@ test("transform data with null object", () => {
     todo: {
       __typename: "Todo",
       id: "Todo:1",
-      category: null
-    }
+      category: null,
+    },
   };
   const formData = types.Todo.data(data.todo).format();
   const expected = {
     id: "Todo:1",
-    categoryId: undefined
+    categoryId: undefined,
   };
   expect(formData).toStrictEqual(expected);
 });
@@ -226,15 +231,15 @@ test("transform query result", () => {
     node: {
       __typename: "Todo",
       id: "Todo:1",
-      text: "First todo"
-    }
+      text: "First todo",
+    },
   };
   const formData = types.Query.data(data).format();
   const expected = {
     node: {
       id: "Todo:1",
-      text: "First todo"
-    }
+      text: "First todo",
+    },
   };
   expect(formData).toStrictEqual(expected);
 });
@@ -243,17 +248,17 @@ test("transform list of inputs", () => {
   const formData = {
     todos: [
       {
-        text: "First todo"
-      }
-    ]
+        text: "First todo",
+      },
+    ],
   };
   const attributes = types.ManyTodos.parse(formData).input();
   const expected = {
     todos: [
       {
-        text: "First todo"
-      }
-    ]
+        text: "First todo",
+      },
+    ],
   };
   expect(attributes).toStrictEqual(expected);
 });
@@ -261,11 +266,11 @@ test("transform list of inputs", () => {
 test("object transformer function can access original value", () => {
   const transforms = {
     Boolean: {
-      getter: value => (value ? "Yes" : "No")
+      getter: (value) => (value ? "Yes" : "No"),
     },
     Category: {
-      getter: (value, original) => (original.visible ? value : null)
-    }
+      getter: (value, original) => (original.visible ? value : null),
+    },
   };
   const types = graphqlDataTransform(
     schema,
@@ -276,23 +281,23 @@ test("object transformer function can access original value", () => {
   const data = [
     {
       category: {
-        visible: true
-      }
+        visible: true,
+      },
     },
     {
       category: {
-        visible: false
-      }
-    }
+        visible: false,
+      },
+    },
   ];
-  const received = data.map(item => types.Todo.setter(item).getter());
+  const received = data.map((item) => types.Todo.setter(item).getter());
   const expected = [
     {
       category: {
-        visible: "Yes"
-      }
+        visible: "Yes",
+      },
     },
-    { category: null }
+    { category: null },
   ];
   expect(received).toStrictEqual(expected);
 });
