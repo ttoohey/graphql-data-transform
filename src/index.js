@@ -26,15 +26,9 @@ export default function graphqlDataTransform(
     .map((item) => item.name.value);
   const objects = schema.definitions.filter(filterObject);
   const objectsByType = objects.reduce(byObjectType, {});
-  const getObjectFieldValue = (
-    method,
-    [value, transformFn],
-    fieldDefinitionType,
-    mode
-  ) => {
+  const getObjectFieldValue = (method, value, fieldDefinitionType, mode) => {
     if (fieldDefinitionType.kind === "NamedType") {
-      const name = fieldDefinitionType.name.value;
-      let Type = types[name];
+      let Type = types[fieldDefinitionType.name.value];
       if (Type === undefined && value && value.__typename) {
         Type = types[value.__typename]; // map interface by typename (TODO)
       }
@@ -43,26 +37,14 @@ export default function graphqlDataTransform(
           `Unable to transform data for type ${fieldDefinitionType.name.value}`
         );
       }
-      return mode
-        ? Type[method](transformFn(name)(value)).get()
-        : Type.set(value)[method]();
+      return mode ? Type[method](value).get() : Type.set(value)[method]();
     }
     if (fieldDefinitionType.kind === "NonNullType") {
-      return getObjectFieldValue(
-        method,
-        [value, transformFn],
-        fieldDefinitionType.type,
-        mode
-      );
+      return getObjectFieldValue(method, value, fieldDefinitionType.type, mode);
     }
     if (fieldDefinitionType.kind === "ListType") {
       return value.map((v) =>
-        getObjectFieldValue(
-          method,
-          [v, transformFn],
-          fieldDefinitionType.type,
-          mode
-        )
+        getObjectFieldValue(method, v, fieldDefinitionType.type, mode)
       );
     }
     throw new Error(
@@ -109,7 +91,7 @@ export default function graphqlDataTransform(
           const fieldDefinitionType = _fields[key].type;
           result[key] = getObjectFieldValue(
             method,
-            mode ? [value, transformFn] : [value, (name) => defaultTransform],
+            value,
             fieldDefinitionType,
             mode
           );

@@ -301,3 +301,33 @@ test("object transformer function can access original value", () => {
   ];
   expect(received).toStrictEqual(expected);
 });
+
+describe("Double transform bug", () => {
+  const schema = gql`
+    scalar Counter
+    type CounterObject {
+      count: Counter
+      counts: [Counter]
+    }
+  `;
+  const transforms = {
+    Counter: {
+      parse: (value) => value + 1,
+    },
+  };
+  const types = graphqlDataTransform(schema, transforms, ["parse"], []);
+  test("Scalar setters are called only once", () => {
+    const count = types.Counter.parse(0).get();
+    expect(count).toBe(1);
+  });
+  test("Object setters are called only once", () => {
+    const { count } = types.CounterObject.parse({ count: 0 }).get();
+    expect(count).toBe(1);
+  });
+  test("List setters are called only once", () => {
+    const {
+      counts: [count],
+    } = types.CounterObject.parse({ counts: [0] }).get();
+    expect(count).toBe(1);
+  });
+});
